@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-04-05T09:26:18.661Z",
+  "sourceFile": "/home/claude/ai-chat-insight/test-session.jsonl",
+  "metrics": {
+    "totalSessions": 1,
+    "totalMessages": 5,
+    "totalHours": 0,
+    "heatmap": {
+      "2026-03-12": 5
+    },
+    "activeHours": {
+      "18": 5
+    },
+    "currentStreak": 0,
+    "longestStreak": 1,
+    "longestWorkDuration": 2,
+    "longestWorkDate": "2026-03-12",
+    "topTools": [
+      [
+        "list_directory",
+        2
+      ],
+      [
+        "read_file",
+        2
+      ]
+    ],
+    "totalLinesAdded": 0,
+    "totalLinesRemoved": 0,
+    "totalFiles": 0
+  },
+  "sessions": [
+    {
+      "session_id": "68e8af36-a3bc-481d-a1ce-63d828819053",
+      "record_count": 10,
+      "start_time": "2026-03-12T18:10:54.918Z",
+      "end_time": "2026-03-12T18:13:24.105Z",
+      "duration_minutes": 2,
+      "message_count": 1,
+      "tool_calls": [
+        "list_directory",
+        "read_file"
+      ]
+    }
+  ],
+  "facets": [],
+  "aggregated": {
+    "satisfactionAgg": {},
+    "frictionAgg": {},
+    "primarySuccessAgg": {},
+    "outcomesAgg": {},
+    "goalsAgg": {}
+  },
+  "qualitative": null
+}
