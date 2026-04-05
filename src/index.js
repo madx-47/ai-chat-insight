@@ -16,9 +16,11 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ override: true });
 import { readJsonlFile, groupBySession, isConversationalSession } from './reader.js';
 import { generateMetrics } from './metrics.js';
-import { analyzeAllSessions } from './analyzer.js';
+import { createAnalyzer } from './providers/index.js';
 import { aggregateFacets } from './aggregator.js';
 
 /**
@@ -29,7 +31,7 @@ import { aggregateFacets } from './aggregator.js';
  * @returns {Promise<object>} InsightData
  */
 export async function generateInsights(sourceFile, options = {}) {
-  const { skipLlm = false } = options;
+  const { skipLlm = false, provider = 'nvidia', providerOptions = {} } = options;
   console.log(`\n[insight] Source: ${sourceFile}`);
 
   // ── Step 1: Read & parse ────────────────────────────────────────────────
@@ -63,8 +65,9 @@ export async function generateInsights(sourceFile, options = {}) {
   if (skipLlm) {
     console.log('[5/5] Skipping LLM analysis (--skip-llm flag set)');
   } else if (conversationalMap.size > 0) {
-    console.log('[5/5] Analyzing sessions with Claude...');
-    facets = await analyzeAllSessions(conversationalMap, {
+    console.log(`[5/5] Analyzing sessions with provider: ${provider}...`);
+    const analyzer = createAnalyzer(provider, providerOptions);
+    facets = await analyzer.analyzeAllSessions(conversationalMap, {
       concurrency: 3,
       onProgress: (done, total) => {
         process.stdout.write(`\r      → ${done}/${total} sessions analyzed`);
@@ -98,6 +101,10 @@ async function main() {
   const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
   const skipLlm = flags.includes('--skip-llm');
 
+  // --provider=nvidia  or  --provider=claude  etc.
+  const providerFlag = flags.find((f) => f.startsWith('--provider='));
+  const provider = providerFlag ? providerFlag.split('=')[1] : 'nvidia';
+
   // if (args.length === 0) {
   //   console.error('Usage: node src/index.js <session.jsonl> [output.json] [--skip-llm]');
   //   process.exit(1);
@@ -105,7 +112,8 @@ async function main() {
 
   // const sourceFile = args[0];
   // const outputFile = args[1] || 'insight.json';
-  const sourceFile = "D:\\Side Project\\ai-chat-insight\\test-session.jsonl";
+  // const sourceFile = "D:\\Side Project\\ai-chat-insight\\test-session.jsonl";
+  const sourceFile = "D:\\Side Project\\ai-chat-insight\\web-session3.jsonl";
   const outputFile = "D:\\Side Project\\ai-chat-insight\\output\\insight.json";
 
   try {
@@ -113,7 +121,7 @@ async function main() {
     const outputDir = path.dirname(path.resolve(outputFile));
     await fs.mkdir(outputDir, { recursive: true });
 
-    const insight = await generateInsights(sourceFile, { skipLlm });
+    const insight = await generateInsights(sourceFile, { skipLlm, provider });
 
     await fs.writeFile(outputFile, JSON.stringify(insight, null, 2), 'utf-8');
     console.log(`\n[insight] Done → ${outputFile}`);
