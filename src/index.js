@@ -9,9 +9,10 @@
  *   2. Group by session
  *   3. Generate metrics (no LLM)
  *   4. Filter conversational sessions
- *   5. Analyze each session with Claude → facets
+ *   5. Analyze each session → facets  (LLM per session)
  *   6. Aggregate facets
- *   7. Write insight.json
+ *   7. Generate qualitative insights  (LLM, 8 sections in parallel)
+ *   8. Write insight.json
  */
 
 import fs from 'fs/promises';
@@ -22,6 +23,7 @@ import { readJsonlFile, groupBySession, isConversationalSession } from './reader
 import { generateMetrics } from './metrics.js';
 import { createAnalyzer } from './providers/index.js';
 import { aggregateFacets } from './aggregator.js';
+import { generateQualitativeInsights } from './qualitative/generator.js';
 
 /**
  * Core pipeline function.
@@ -31,7 +33,12 @@ import { aggregateFacets } from './aggregator.js';
  * @returns {Promise<object>} InsightData
  */
 export async function generateInsights(sourceFile, options = {}) {
-  const { skipLlm = false, provider = 'nvidia', providerOptions = {} } = options;
+  const {
+    skipLlm = false,
+    skipQualitative = false,
+    provider = 'nvidia',
+    providerOptions = {},
+  } = options;
   console.log(`\n[insight] Source: ${sourceFile}`);
 
   // ── Step 1: Read & parse ────────────────────────────────────────────────
@@ -62,11 +69,12 @@ export async function generateInsights(sourceFile, options = {}) {
 
   // ── Step 5: LLM analysis → facets ───────────────────────────────────────
   let facets = [];
+  let analyzer = null;
   if (skipLlm) {
     console.log('[5/5] Skipping LLM analysis (--skip-llm flag set)');
   } else if (conversationalMap.size > 0) {
     console.log(`[5/5] Analyzing sessions with provider: ${provider}...`);
-    const analyzer = createAnalyzer(provider, providerOptions);
+    analyzer = createAnalyzer(provider, providerOptions);
     facets = await analyzer.analyzeAllSessions(conversationalMap, {
       concurrency: 3,
       onProgress: (done, total) => {
@@ -81,7 +89,20 @@ export async function generateInsights(sourceFile, options = {}) {
   // ── Step 6: Aggregate facets ─────────────────────────────────────────────
   const aggregated = aggregateFacets(facets);
 
-  // ── Step 7: Assemble final InsightData ───────────────────────────────────
+  // ── Step 7: Qualitative insights (8 LLM calls in parallel) ──────────────
+  let qualitative = null;
+  if (skipLlm || skipQualitative) {
+    console.log('[7/8] Skipping qualitative insights');
+  } else if (analyzer && facets.length > 0) {
+    console.log('[7/8] Generating qualitative insights...');
+    qualitative = await generateQualitativeInsights(analyzer, metrics, facets, {
+      onProgress: (msg) => console.log(`      ${msg}`),
+    });
+  } else {
+    console.log('[7/8] No facets — skipping qualitative insights');
+  }
+
+  // ── Step 8: Assemble final InsightData ───────────────────────────────────
   const insightData = {
     generatedAt: new Date().toISOString(),
     sourceFile: path.resolve(sourceFile),
@@ -89,7 +110,7 @@ export async function generateInsights(sourceFile, options = {}) {
     sessions,
     facets,
     aggregated,
-    qualitative: null, // Phase 2
+    qualitative,  // null if skipped, object with 8 sections if generated
   };
 
   return insightData;
@@ -100,6 +121,7 @@ async function main() {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
   const skipLlm = flags.includes('--skip-llm');
+  const skipQualitative = flags.includes('--skip-qualitative');
 
   // --provider=nvidia  or  --provider=claude  etc.
   const providerFlag = flags.find((f) => f.startsWith('--provider='));
@@ -121,7 +143,7 @@ async function main() {
     const outputDir = path.dirname(path.resolve(outputFile));
     await fs.mkdir(outputDir, { recursive: true });
 
-    const insight = await generateInsights(sourceFile, { skipLlm, provider });
+    const insight = await generateInsights(sourceFile, { skipLlm, skipQualitative, provider });
 
     await fs.writeFile(outputFile, JSON.stringify(insight, null, 2), 'utf-8');
     console.log(`\n[insight] Done → ${outputFile}`);
@@ -144,6 +166,16 @@ async function main() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
       console.log('\nTop goals:', topGoals.map(([k, v]) => `${k}(${v})`).join(', '));
+    }
+    if (insight.qualitative) {
+      const sections = Object.keys(insight.qualitative).filter((k) => insight.qualitative[k] !== null);
+      console.log(`\nQualitative: ${sections.length}/8 sections generated`);
+      if (insight.qualitative.at_a_glance) {
+        console.log('\n── At a Glance ──');
+        console.log('Working:    ', insight.qualitative.at_a_glance.whats_working);
+        console.log('Hindering:  ', insight.qualitative.at_a_glance.whats_hindering);
+        console.log('Quick wins: ', insight.qualitative.at_a_glance.quick_wins);
+      }
     }
     console.log('─────────────────────────────────────────────\n');
   } catch (err) {
