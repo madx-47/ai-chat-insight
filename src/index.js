@@ -24,6 +24,7 @@ import { generateMetrics } from './metrics.js';
 import { createAnalyzer } from './providers/index.js';
 import { aggregateFacets } from './aggregator.js';
 import { generateQualitativeInsights } from './qualitative/generator.js';
+import { StaticInsightGenerator } from './htmlGenerator.js';
 
 /**
  * Core pipeline function.
@@ -116,12 +117,26 @@ export async function generateInsights(sourceFile, options = {}) {
   return insightData;
 }
 
+/**
+ * generateStaticHtml — same pattern as Qwen's StaticInsightGenerator.
+ * Reads an existing insight.json and generates a self-contained HTML report.
+ *
+ * @param {string} [insightJsonPath]  Path to insight.json (default: output/insight.json)
+ * @param {Function} [onProgress]     Optional callback(stage, percent)
+ * @returns {Promise<string>}          Path of the generated HTML file
+ */
+export async function generateStaticHtml(insightJsonPath, onProgress) {
+  const generator = new StaticInsightGenerator();
+  return generator.generateStaticInsight(insightJsonPath, onProgress);
+}
+
 // ── CLI runner ──────────────────────────────────────────────────────────────
 async function main() {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
   const skipLlm = flags.includes('--skip-llm');
   const skipQualitative = flags.includes('--skip-qualitative');
+  const htmlOnly = flags.includes('--html');
 
   // --provider=nvidia  or  --provider=claude  etc.
   const providerFlag = flags.find((f) => f.startsWith('--provider='));
@@ -139,6 +154,17 @@ async function main() {
   const outputFile = "D:\\Side Project\\ai-chat-insight\\output\\insight.json";
 
   try {
+    // ── HTML-only mode: skip analysis, just render existing insight.json ──
+    if (htmlOnly) {
+      console.log('[insight] --html mode: rendering HTML from existing insight.json...');
+      const htmlPath = await generateStaticHtml(outputFile, (stage, pct) => {
+        console.log(`      [${pct}%] ${stage}`);
+      });
+      console.log(`\n[insight] HTML report → ${htmlPath}`);
+      console.log('[insight] Open this file in your browser to view the report.');
+      return;
+    }
+
     // Auto-create output directory if needed
     const outputDir = path.dirname(path.resolve(outputFile));
     await fs.mkdir(outputDir, { recursive: true });
@@ -147,6 +173,14 @@ async function main() {
 
     await fs.writeFile(outputFile, JSON.stringify(insight, null, 2), 'utf-8');
     console.log(`\n[insight] Done → ${outputFile}`);
+
+    // Auto-generate HTML report after successful analysis
+    console.log('\n[insight] Generating HTML report...');
+    const htmlPath = await generateStaticHtml(outputFile, (stage, pct) => {
+      console.log(`      [${pct}%] ${stage}`);
+    });
+    console.log(`[insight] HTML report → ${htmlPath}`);
+    console.log('[insight] Open this file in your browser to view the report.');
 
     // Print a quick summary to terminal
     console.log('\n── Summary ──────────────────────────────────');
