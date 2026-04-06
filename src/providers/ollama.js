@@ -24,7 +24,7 @@ export class OllamaAnalyzer extends BaseAnalyzer {
    */
   constructor(options = {}) {
     super();
-    this.model = options.model || 'llama3.1:8b';
+    this.model = options.model || 'qwen3.5:0.8b';
     this.baseUrl = options.baseUrl || OLLAMA_URL;
     this.temperature = options.temperature ?? 0.1;
   }

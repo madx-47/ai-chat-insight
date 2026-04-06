@@ -14,11 +14,16 @@
  *   7. Generate qualitative insights  (LLM, 8 sections in parallel)
  *   8. Write insight.json
  */
-
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-dotenv.config({ override: true });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import { readJsonlFile, groupBySession, isConversationalSession } from './reader.js';
 import { generateMetrics } from './metrics.js';
 import { createAnalyzer } from './providers/index.js';
@@ -37,7 +42,7 @@ export async function generateInsights(sourceFile, options = {}) {
   const {
     skipLlm = false,
     skipQualitative = false,
-    provider = 'nvidia',
+    provider = 'ollama',
     providerOptions = {},
   } = options;
   console.log(`\n[insight] Source: ${sourceFile}`);
@@ -140,7 +145,7 @@ async function main() {
 
   // --provider=nvidia  or  --provider=claude  etc.
   const providerFlag = flags.find((f) => f.startsWith('--provider='));
-  const provider = providerFlag ? providerFlag.split('=')[1] : 'nvidia';
+  const provider = providerFlag ? providerFlag.split('=')[1] : 'ollama';
 
   // if (args.length === 0) {
   //   console.error('Usage: node src/index.js <session.jsonl> [output.json] [--skip-llm]');
@@ -150,7 +155,7 @@ async function main() {
   // const sourceFile = args[0];
   // const outputFile = args[1] || 'insight.json';
   // const sourceFile = "D:\\Side Project\\ai-chat-insight\\test-session.jsonl";
-  const sourceFile = "D:\\Side Project\\ai-chat-insight\\web-session3.jsonl";
+  const sourceFile = "D:\\Side Project\\ai-chat-insight\\web-session.jsonl";
   const outputFile = "D:\\Side Project\\ai-chat-insight\\output\\insight.json";
 
   try {

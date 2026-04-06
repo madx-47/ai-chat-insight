@@ -37,7 +37,6 @@ export class NvidiaAnalyzer extends BaseAnalyzer {
     this.apiKey = options.apiKey || process.env.NVIDIA_API_KEY;
 
     if (!this.apiKey) {
-      console.log(this.apiKey);
       throw new Error(
         'NVIDIA_API_KEY is not set. Set it as an environment variable or pass apiKey in options.',
       );
