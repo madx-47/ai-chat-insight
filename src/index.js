@@ -42,7 +42,7 @@ export async function generateInsights(sourceFile, options = {}) {
   const {
     skipLlm = false,
     skipQualitative = false,
-    provider = 'ollama',
+    provider = 'nvidia',
     providerOptions = {},
   } = options;
   console.log(`\n[insight] Source: ${sourceFile}`);
@@ -145,7 +145,7 @@ async function main() {
 
   // --provider=nvidia  or  --provider=claude  etc.
   const providerFlag = flags.find((f) => f.startsWith('--provider='));
-  const provider = providerFlag ? providerFlag.split('=')[1] : 'ollama';
+  const provider = providerFlag ? providerFlag.split('=')[1] : 'nvidia';
 
   // if (args.length === 0) {
   //   console.error('Usage: node src/index.js <session.jsonl> [output.json] [--skip-llm]');
@@ -155,7 +155,7 @@ async function main() {
   // const sourceFile = args[0];
   // const outputFile = args[1] || 'insight.json';
   // const sourceFile = "D:\\Side Project\\ai-chat-insight\\test-session.jsonl";
-  const sourceFile = "D:\\Side Project\\ai-chat-insight\\web-session.jsonl";
+  const sourceFile = "D:\\Side Project\\ai-chat-insight\\web-session3.jsonl";
   const outputFile = "D:\\Side Project\\ai-chat-insight\\output\\insight.json";
 
   try {

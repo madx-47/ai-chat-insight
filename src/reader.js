@@ -34,13 +34,15 @@ export async function readJsonlFile(filePath) {
  */
 export function groupBySession(records) {
   const map = new Map();
+  const getBucket = (id) => {
+    if (!map.has(id)) map.set(id, []);
+    return map.get(id);
+  };
 
   for (const record of records) {
     const id = record.sessionId;
     if (!id) continue;
-
-    if (!map.has(id)) map.set(id, []);
-    map.get(id).push(record);
+    getBucket(id).push(record);
   }
 
   return map;

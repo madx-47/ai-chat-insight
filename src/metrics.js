@@ -5,6 +5,8 @@
  * Returns MetricsData plus a SessionMeta[] array for every session found.
  */
 
+const MS_PER_DAY = 86_400_000;
+
 /**
  * Format a Date as YYYY-MM-DD (local date, not UTC).
  * @param {Date} date
@@ -36,7 +38,7 @@ function calculateStreaks(dates) {
 
   for (let i = 1; i < dateObjs.length; i++) {
     const diffDays = Math.floor(
-      (dateObjs[i].getTime() - dateObjs[i - 1].getTime()) / 86_400_000,
+      (dateObjs[i].getTime() - dateObjs[i - 1].getTime()) / MS_PER_DAY,
     );
 
     if (diffDays === 1) {
@@ -64,6 +66,16 @@ function calculateStreaks(dates) {
   return { currentStreak, longestStreak };
 }
 
+function collectToolNames(parts = []) {
+  const names = [];
+  for (const part of parts) {
+    if (part.functionCall?.name) {
+      names.push(part.functionCall.name);
+    }
+  }
+  return names;
+}
+
 /**
  * Build SessionMeta for one session's records.
  * @param {string} sessionId
@@ -83,10 +95,8 @@ function buildSessionMeta(sessionId, records) {
   const toolCallSet = new Set();
   for (const r of records) {
     if (r.type === 'assistant' && r.message?.parts) {
-      for (const part of r.message.parts) {
-        if (part.functionCall?.name) {
-          toolCallSet.add(part.functionCall.name);
-        }
+      for (const toolName of collectToolNames(r.message.parts)) {
+        toolCallSet.add(toolName);
       }
     }
   }
@@ -152,11 +162,8 @@ export function generateMetrics(sessionMap) {
 
       // Tool usage from assistant function calls
       if (record.type === 'assistant' && record.message?.parts) {
-        for (const part of record.message.parts) {
-          if (part.functionCall?.name) {
-            const name = part.functionCall.name;
-            toolUsage[name] = (toolUsage[name] || 0) + 1;
-          }
+        for (const name of collectToolNames(record.message.parts)) {
+          toolUsage[name] = (toolUsage[name] || 0) + 1;
         }
       }
     }

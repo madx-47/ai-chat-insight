@@ -13,32 +13,31 @@ export function aggregateFacets(facets) {
   const outcomesAgg = {};
   const goalsAgg = {};
 
-  for (const facet of facets) {
-    // Satisfaction
-    for (const [key, count] of Object.entries(facet.user_satisfaction_counts || {})) {
-      satisfactionAgg[key] = (satisfactionAgg[key] || 0) + count;
+  const addCounts = (target, source = {}) => {
+    for (const [key, count] of Object.entries(source)) {
+      target[key] = (target[key] || 0) + count;
     }
+  };
 
-    // Friction
-    for (const [key, count] of Object.entries(facet.friction_counts || {})) {
-      frictionAgg[key] = (frictionAgg[key] || 0) + count;
-    }
+  const increment = (target, key) => {
+    target[key] = (target[key] || 0) + 1;
+  };
+
+  for (const facet of facets) {
+    addCounts(satisfactionAgg, facet.user_satisfaction_counts);
+    addCounts(frictionAgg, facet.friction_counts);
 
     // Primary success (skip 'none')
     if (facet.primary_success && facet.primary_success !== 'none') {
-      primarySuccessAgg[facet.primary_success] =
-        (primarySuccessAgg[facet.primary_success] || 0) + 1;
+      increment(primarySuccessAgg, facet.primary_success);
     }
 
     // Outcomes
     if (facet.outcome) {
-      outcomesAgg[facet.outcome] = (outcomesAgg[facet.outcome] || 0) + 1;
+      increment(outcomesAgg, facet.outcome);
     }
 
-    // Goals
-    for (const [key, count] of Object.entries(facet.goal_categories || {})) {
-      goalsAgg[key] = (goalsAgg[key] || 0) + count;
-    }
+    addCounts(goalsAgg, facet.goal_categories);
   }
 
   return {
