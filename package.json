@@ -1,19 +1,47 @@
 {
   "name": "ai-chat-insight",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "AI Chat Insight — analyse and visualise AI session data",
+  "main": "src/index.js",
+  "bin": {
+    "insight": "./bin/insight.js"
+  },
   "scripts": {
     "test": "node test/run-regression.js",
-    "analyze": "node src/index.js"
+    "analyze": "node src/index.js",
+    "web": "node src/server.js",
+    "frontend:dev": "vite --config frontend/vite.config.ts",
+    "frontend:build": "vite build --config frontend/vite.config.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
+    "@inquirer/prompts": "^8.4.0",
     "axios": "^1.14.0",
-    "dotenv": "^17.4.1"
+    "class-variance-authority": "^0.7.1",
+    "cli-progress": "^3.12.0",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.4.1",
+    "express": "^4.21.2",
+    "lucide-react": "^0.542.0",
+    "multer": "^2.0.2",
+    "open": "^11.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
   },
   "type": "module"
 }
