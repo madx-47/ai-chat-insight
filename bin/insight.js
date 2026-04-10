@@ -170,7 +170,13 @@ async function main() {
   }
 
   // 6. Write insight JSON
-  await fs.writeFile(outputJsonPath, JSON.stringify(insight, null, 2), 'utf-8');
+  try {
+    await fs.writeFile(outputJsonPath, JSON.stringify(insight, null, 2), 'utf-8');
+  } catch (err) {
+    bar.stop();
+    console.error('\n  ✖  Failed to write JSON:', err.message);
+    process.exit(1);
+  }
   bar.update(92, { message: 'Generating HTML report…' });
 
   // 7. Generate HTML — output goes to sessionRoot/output/reports/
