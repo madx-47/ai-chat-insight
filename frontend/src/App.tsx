@@ -235,11 +235,17 @@ function App() {
   useEffect(() => {
     if (!jobId || view !== "loading") return;
 
+    const controller = new AbortController();
+    let mounted = true;
+
     const timer = setInterval(async () => {
+      if (controller.signal.aborted) return;
+
       try {
-        const statusRes = await fetch(`/api/jobs/${jobId}`);
+        const statusRes = await fetch(`/api/jobs/${jobId}`, { signal: controller.signal });
         const status = await statusRes.json();
         if (!statusRes.ok) throw new Error(status.error || "Failed to fetch job status");
+        if (!mounted) return;
         setJob(status);
 
         if (status.status === "failed") {
@@ -248,24 +254,31 @@ function App() {
 
         if (status.status === "done") {
           clearInterval(timer);
-          const reportRes = await fetch(`/api/jobs/${jobId}/report`);
+          const reportRes = await fetch(`/api/jobs/${jobId}/report`, { signal: controller.signal });
           const payload = await reportRes.json();
           if (!reportRes.ok) throw new Error(payload.error || "Failed to fetch report");
           if (!payload?.insight || !payload?.paths?.insightJsonPath) {
             throw new Error("Report payload is incomplete.");
           }
+          if (!mounted) return;
           setReport(payload);
           setTab("pulse");
           setView("dashboard");
         }
       } catch (e: any) {
+        if (e.name === "AbortError") return;
         clearInterval(timer);
+        if (!mounted) return;
         setError(e?.message || String(e));
         setView("home");
       }
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      mounted = false;
+      controller.abort();
+      clearInterval(timer);
+    };
   }, [jobId, view]);
 
   async function handleSend(message: string, files?: File[]) {

@@ -10,11 +10,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 
 // ─── Bootstrap: load .env from CWD first, then fall back to package root ────
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const packageRoot = path.resolve(__dirname, '..');
