@@ -1,3 +1,5 @@
+# Extractor Prompt
+
 I need you to export this entire conversation as structured JSONL 
 Give the FULL conversation from the very first message up to (but NOT including) this instruction message.
 

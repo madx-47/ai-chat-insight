@@ -31,6 +31,16 @@ export function PromptInputBox({
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const next = Array.from(e.target.files || []);
     setFiles(next);
+    // Reset input value so the same file can be selected again after removal
+    e.target.value = '';
+  };
+
+  const removeFile = (fileToRemove: File) => {
+    setFiles((prev) => prev.filter((f) => f.name !== fileToRemove.name));
+    // Reset input value to allow re-selecting the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -59,7 +69,7 @@ export function PromptInputBox({
               <button
                 type="button"
                 className="rounded-full p-0.5 hover:bg-cyan-200/20"
-                onClick={() => setFiles((prev) => prev.filter((f) => f.name !== file.name))}
+                onClick={() => removeFile(file)}
               >
                 <X className="h-3 w-3" />
               </button>

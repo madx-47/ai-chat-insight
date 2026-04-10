@@ -11,7 +11,7 @@ const TIME_FACTOR = 0.25;
 const BASE_SWIRL_STRENGTH = 1.2;
 const SWIRL_TIME_MULT = 5.0;
 const NOISE_SWIRL_FACTOR = 0.2;
-const FBM_OCTAVES = 10;
+const FBM_OCTAVES = 6;
 
 const seaColors = [
   [0.0, 0.02, 0.05],
@@ -273,6 +273,10 @@ export function WavyBackground({
     gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
 
     const aPositionLoc = gl.getAttribLocation(program, "aPosition");
+    if (aPositionLoc === -1) {
+      console.error("Attribute 'aPosition' not found in shader program.");
+      return;
+    }
     gl.enableVertexAttribArray(aPositionLoc);
     gl.vertexAttribPointer(aPositionLoc, 2, gl.FLOAT, false, 0, 0);
 
