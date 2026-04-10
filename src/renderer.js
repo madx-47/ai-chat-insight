@@ -57,6 +57,9 @@ function normalizeInsightData(data) {
     primarySuccess: agg.primarySuccessAgg ?? {},
     outcomes: agg.outcomesAgg ?? {},
     topGoals: agg.goalsAgg ?? {},
+    // Per-session data
+    facets: data.facets || [],
+    sessions: data.sessions || [],
     // Qualitative
     qualitative,
   };

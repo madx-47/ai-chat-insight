@@ -28,5 +28,14 @@ logs/
 __pycache__/
 *.py[cod]
 
+# Backup files
+*.backup.*
+*.bak
+
 # Misc
 *.local
+sessions/
+.agent**/
+.wiki**/
+.qwen**/
+.gsd/

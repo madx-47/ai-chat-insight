@@ -127,3 +127,94 @@ npm test
 - Session grouping depends on `sessionId`.
 - Conversational analysis runs only on sessions containing both `user` and `assistant` records.
 - Qualitative layer is skipped automatically if no facets are generated.
+A CLI tool for analyzing and visualizing AI chat session data. It extracts qualitative and quantitative insights from conversational session logs (`.jsonl`), scoring interactions, topics, and overall user goals to generate a beautiful, self-contained HTML report.
+
+## Installation & Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository_url>
+   cd ai-chat-insight
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root directory (or in the directory where you'll run the command) and add your AI provider API key. For the default provider (NVIDIA NIM in this example), add:
+   ```env
+   NVIDIA_API_KEY=your_nvidia_api_key_here
+   ```
+   *(If you use Claude, add `ANTHROPIC_API_KEY=...` and run with `--provider=claude`, etc.)*
+
+4. **Register the Global CLI Tool:**
+   To run the `insight` command from any directory on your computer, create a global symlink using NPM:
+   ```bash
+   npm link
+   ```
+
+## Usage
+
+Once linked, the `insight` tool is available globally as an interactive CLI.
+
+### 1. Basic Interactive Mode
+
+Navigate to any directory containing your session logs (`.jsonl` files) and run the command:
+
+```bash
+cd path/to/your/sessions/folder
+insight
+```
+
+The tool will:
+- Automatically find all `.jsonl` files in the current folder.
+- Show an interactive checkbox menu so you can select a session file (or it will auto-select if there is only one file).
+- Process the session data using the configured AI provider.
+- Generate a detailed HTML report and save it in a new `./output/reports/` folder *inside the directory where you ran the command*.
+- Automatically open the HTML report in your default web browser once finished.
+
+### 2. Available Flags
+
+You can customize the pipeline execution with the following command-line flags:
+
+- **Skip LLM Analysis (`--skip-llm`):**
+  Generate basic statistics and group sessions without invoking the AI LLM (saves time / API calls if you only care about metrics).
+  ```bash
+  insight --skip-llm
+  ```
+
+- **Choose Provider (`--provider=<name>`):**
+  Explicitly state which AI provider to use. Make sure your `.env` contains the required key for that provider.
+  ```bash
+  insight --provider=claude
+  ```
+
+- **Skip Qualitative Info (`--skip-qualitative`):**
+  Skips the generation of high-level qualitative summaries at the end of the pipeline.
+  ```bash
+  insight --skip-qualitative
+  ```
+
+## How It Works
+
+- **`bin/insight.js`**: The main executable that presents the CLI menu, handles file pickup, coordinates progress reporting, and runs the downstream pipeline.
+- **`src/index.js`**: Handles the core logic: loading source files, running analysis modules (via LLMs or heuristically), and orchestrating metrics aggregation.
+- **`src/htmlGenerator.js`**: Takes the processed JSON insight data and populates a beautifully designed HTML report, allowing quick visualization of AI performance and user interaction metrics.
+
+## Example Output
+
+When processing is complete, the CLI will output a summary to your terminal:
+```text
+  ─────────────────────────────────────────────
+  Sessions :  2
+  Messages :  47
+  Facets   :  15
+  Streak   :  2 day(s)
+  ─────────────────────────────────────────────
+  JSON  →  D:\Projects\Insights\sessions\output\insight-20260406-202948.json
+  HTML  →  D:\Projects\Insights\sessions\output\reports\insight-20260406-202948.html
+
+  Opening report in browser…
+```

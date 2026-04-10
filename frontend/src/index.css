@@ -1,0 +1,43 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 222 47% 5%;
+  --foreground: 210 40% 98%;
+  --card: 222 45% 8%;
+  --card-foreground: 210 40% 98%;
+  --primary: 187 100% 64%;
+  --primary-foreground: 223 47% 11%;
+  --secondary: 222 33% 16%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 223 25% 23%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 158 100% 70%;
+  --accent-foreground: 223 47% 11%;
+  --destructive: 0 85% 64%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 36% 26%;
+  --input: 214 36% 26%;
+  --ring: 187 100% 64%;
+  --radius: 0.9rem;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply min-h-screen bg-background text-foreground antialiased;
+  font-family: "Manrope", sans-serif;
+}
+
+@keyframes meshDrift {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) translateX(10px) scale(1.06);
+  }
+}

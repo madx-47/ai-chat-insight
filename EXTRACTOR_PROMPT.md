@@ -1,4 +1,5 @@
-I need you to export this entire conversation as structured JSONL so I can analyze it with an offline tool and simulation engine.
+I need you to export this entire conversation as structured JSONL 
+Give the FULL conversation from the very first message up to (but NOT including) this instruction message.
 
 OUTPUT REQUIREMENTS
 - Return ONLY raw JSONL
@@ -48,7 +49,8 @@ MESSAGE CONTENT RULES
   append at end of assistant message:
   "[PROMPT FEEDBACK: pros..., cons..., suggested improvement...]"
   Keep this concise and under 200 characters.
-RECORD SCHEMA
+
+RECORD SCHEMA:
 
 USER MESSAGE
 {"uuid":"<id>","parentUuid":"<prev-id or null>","sessionId":"<session-id>","timestamp":"<ISO>","type":"user","message":{"role":"user","parts":[{"text":"<message text>"}]}}
@@ -62,5 +64,3 @@ TOOL USAGE (append inside assistant parts array)
 TOOL RESULT (separate record)
 {"uuid":"<id>","parentUuid":"<prev-id>","sessionId":"<session-id>","timestamp":"<ISO>","type":"tool_result","toolCallResult":{"callId":"<tool-call-id>","status":"success","resultDisplay":"<short summary>"}}
 
-FINAL INSTRUCTION
-Export the FULL conversation from the very first message up to (but NOT including) this instruction message.

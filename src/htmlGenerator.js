@@ -9,38 +9,32 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { TemplateRenderer } from './renderer.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class StaticInsightGenerator {
   constructor() {
     this.templateRenderer = new TemplateRenderer();
   }
 
-  /** Ensure output/reports/ dir exists, return its absolute path */
-  async ensureOutputDirectory() {
-    const outputDir = path.resolve('output', 'reports');
+  /**
+   * Ensure output/reports/ dir exists, return its absolute path.
+   * @param {string} [outputRoot]  Optional root dir; defaults to package output/
+   */
+  async ensureOutputDirectory(outputRoot) {
+    const base = outputRoot || path.resolve(__dirname, '..');
+    const outputDir = path.join(base, 'output', 'reports');
     await fs.mkdir(outputDir, { recursive: true });
     return outputDir;
   }
 
-  /**
-   * Generate a timestamped filename. If today's date file already exists,
-   * append HHMMSS to avoid collision — same logic as Qwen.
-   */
-  async generateOutputPath(outputDir) {
-    const now = new Date();
-    const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const time = now.toTimeString().slice(0, 8).replace(/:/g, ''); // HHMMSS
-
-    let outputPath = path.join(outputDir, `insight-${date}.html`);
-    try {
-      await fs.access(outputPath);
-      // File exists → use timestamped version
-      outputPath = path.join(outputDir, `insight-${date}-${time}.html`);
-    } catch {
-      // File doesn't exist → use date-only name (no-op)
-    }
-    return outputPath;
+  /** Build report filename from the input insight JSON name */
+  generateOutputPath(outputDir, insightJsonPath) {
+    const baseName = path.basename(insightJsonPath, path.extname(insightJsonPath));
+    return path.join(outputDir, `${baseName}.html`);
   }
 
   /**
@@ -48,10 +42,11 @@ export class StaticInsightGenerator {
    *
    * @param {string} insightJsonPath  Path to insight.json (default: output/insight.json)
    * @param {Function} [onProgress]   Optional callback(stage, percent)
+   * @param {string} [outputRoot]     Optional root dir for output/ (defaults to package root)
    * @returns {Promise<string>}        Absolute path of the generated HTML file
    */
-  async generateStaticInsight(insightJsonPath, onProgress) {
-    const src = insightJsonPath || path.resolve('output', 'insight.json');
+  async generateStaticInsight(insightJsonPath, onProgress, outputRoot) {
+    const src = insightJsonPath || path.resolve(__dirname, '../output/insight.json');
 
     if (onProgress) onProgress('Reading insight data...', 0);
 
@@ -64,9 +59,9 @@ export class StaticInsightGenerator {
     // 2. Render to self-contained HTML
     const html = await this.templateRenderer.renderInsightHTML(insightData);
 
-    // 3. Prepare output path
-    const outputDir = await this.ensureOutputDirectory();
-    const outputPath = await this.generateOutputPath(outputDir);
+    // 3. Prepare output path (respect custom outputRoot)
+    const outputDir = await this.ensureOutputDirectory(outputRoot);
+    const outputPath = this.generateOutputPath(outputDir, src);
 
     if (onProgress) onProgress('Writing HTML file...', 80);
 

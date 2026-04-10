@@ -28,16 +28,6 @@ body { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); min-height
 .header-title { font-size: 1.75rem; font-weight: 700; color: #0f172a; letter-spacing: -0.025em; }
 .header-subtitle { font-size: 0.875rem; color: #64748b; margin-top: 4px; }
 
-/* Export button */
-.export-dropdown-wrapper { position: relative; }
-.export-card-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
-.export-card-btn:hover { background: #1e293b; }
-.export-chevron { transition: transform 0.15s; }
-.export-chevron.open { transform: rotate(180deg); }
-.export-dropdown { position: absolute; right: 0; top: calc(100% + 6px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.1); z-index: 50; min-width: 160px; overflow: hidden; }
-.export-dropdown-item { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; transition: background 0.12s; }
-.export-dropdown-item:hover { background: #f8fafc; }
-
 /* ── At a Glance ── */
 .at-a-glance { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 24px; margin-bottom: 32px; }
 .glance-title { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
@@ -183,6 +173,37 @@ body { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); min-height
   .stat-value { font-size: 1.2rem; }
   .header-title { font-size: 1.3rem; }
 }
+
+/* ── Per-Session Analysis ── */
+.per-session-section { margin-top: 40px; }
+.per-session-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+.session-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: box-shadow 0.15s; }
+.session-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.session-card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.session-number { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #0f172a; color: white; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.session-id { font-size: 13px; font-family: ui-monospace, monospace; color: #64748b; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; }
+.session-date { font-size: 13px; color: #475569; }
+.session-duration { font-size: 13px; color: #94a3b8; margin-left: auto; }
+.session-card-summary { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 14px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #3b82f6; }
+.session-meta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.session-meta-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.goal-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.goal-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: #dbeafe; color: #1e40af; font-weight: 500; white-space: nowrap; }
+.goal-badge .goal-count { font-weight: 700; }
+.outcome-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.outcome-badge.fully_achieved { background: #dcfce7; color: #166534; }
+.outcome-badge.mostly_achieved { background: #d1fae5; color: #065f46; }
+.outcome-badge.partially_achieved { background: #fef3c7; color: #92400e; }
+.outcome-badge.not_achieved { background: #fee2e2; color: #991b1b; }
+.outcome-badge.unclear_from_transcript { background: #f1f5f9; color: #475569; }
+.helpfulness-dots { display: flex; gap: 3px; align-items: center; }
+.helpfulness-dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; transition: background 0.15s; }
+.helpfulness-dot.active { background: #3b82f6; }
+.friction-count { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.friction-count.none { background: #dcfce7; color: #166534; }
+.friction-count.low { background: #fef3c7; color: #92400e; }
+.friction-count.high { background: #fee2e2; color: #991b1b; }
+.session-type-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: #f0f9ff; color: #0369a1; font-weight: 500; white-space: nowrap; }
 `;
 }
 
@@ -621,6 +642,114 @@ export function getInsightJS() {
     );
   }
 
+  // ── Per-Session Analysis ──────────────────────────────────────────────────
+
+  function HelpfulnessDots({ level }) {
+    const levels = { unhelpful: 1, slightly_helpful: 2, moderately_helpful: 3, very_helpful: 4, essential: 5 };
+    const active = levels[level] || 0;
+    return h('div', { className: 'helpfulness-dots', title: level || 'unknown' },
+      [1,2,3,4,5].map(i => h('span', { key: i, className: 'helpfulness-dot' + (i <= active ? ' active' : '') }))
+    );
+  }
+
+  function FrictionBadge({ frictionCounts }) {
+    if (!frictionCounts) return h('span', { className: 'friction-count none' }, 'No friction');
+    const total = Object.entries(frictionCounts).reduce((sum, [k, v]) => k === 'none' ? sum : sum + v, 0);
+    const cls = total === 0 ? 'none' : total <= 2 ? 'low' : 'high';
+    return h('span', { className: 'friction-count ' + cls }, total + ' friction');
+  }
+
+  function GoalBadges({ goals }) {
+    if (!goals || Object.keys(goals).length === 0) return null;
+    const entries = Object.entries(goals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return h('div', { className: 'goal-badges' },
+      entries.map(([key, count]) =>
+        h('span', { key: key, className: 'goal-badge', title: key },
+          formatLabel(key),
+          h('span', { className: 'goal-count' }, ' ' + count)
+        )
+      )
+    );
+  }
+
+  function formatDuration(minutes) {
+    if (!minutes || minutes < 0) return '—';
+    if (minutes < 60) return minutes + 'm';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? h + 'h ' + m + 'm' : h + 'h';
+  }
+
+  function formatDate(isoStr) {
+    if (!isoStr) return '—';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return '—'; }
+  }
+
+  function PerSessionAnalysis({ facets, sessions }) {
+    if (!facets || facets.length === 0) return null;
+
+    // Build a lookup map from sessions[] for quick access
+    const sessionMap = {};
+    if (sessions) {
+      sessions.forEach(s => { sessionMap[s.session_id] = s; });
+    }
+
+    return h('div', { className: 'per-session-section' },
+      h('h2', { id: 'section-per-sessions', className: 'section-heading' }, 'Per-Session Analysis'),
+      h('p', { style: { fontSize: 14, color: '#64748b', marginBottom: 16 } },
+        'Detailed breakdown of each session (' + facets.length + ' sessions)'),
+      h('div', { className: 'per-session-grid' },
+        facets.map((facet, idx) => {
+          const session = sessionMap[facet.session_id] || {};
+          return h('div', { key: facet.session_id || idx, className: 'session-card' },
+            // Header row: number, ID, date, duration
+            h('div', { className: 'session-card-header' },
+              h('span', { className: 'session-number' }, idx + 1),
+              h('span', { className: 'session-id', title: facet.session_id }, (facet.session_id || '').slice(0, 8) + '…'),
+              h('span', { className: 'session-date' }, formatDate(session.start_time)),
+              h('span', { className: 'session-duration' }, formatDuration(session.duration_minutes))
+            ),
+            // Summary
+            facet.brief_summary && h('div', { className: 'session-card-summary' },
+              h(MarkdownText, null, facet.brief_summary)
+            ),
+            // Meta row: goals, outcome, helpfulness, friction, session type
+            h('div', { className: 'session-meta-row' },
+              // Goals
+              facet.goal_categories && h('div', null,
+                h('div', { className: 'session-meta-label' }, 'Goals'),
+                h(GoalBadges, { goals: facet.goal_categories })
+              ),
+              // Outcome
+              facet.outcome && h('div', null,
+                h('div', { className: 'session-meta-label' }, 'Outcome'),
+                h('span', { className: 'outcome-badge ' + (facet.outcome || '') }, formatLabel(facet.outcome))
+              ),
+              // Helpfulness
+              facet.ai_helpfulness && h('div', null,
+                h('div', { className: 'session-meta-label' }, 'Helpfulness'),
+                h(HelpfulnessDots, { level: facet.ai_helpfulness })
+              ),
+              // Friction
+              h('div', null,
+                h('div', { className: 'session-meta-label' }, 'Friction'),
+                h(FrictionBadge, { frictionCounts: facet.friction_counts })
+              ),
+              // Session type
+              facet.session_type && h('div', null,
+                h('div', { className: 'session-meta-label' }, 'Type'),
+                h('span', { className: 'session-type-badge' }, formatLabel(facet.session_type))
+              )
+            )
+          );
+        })
+      )
+    );
+  }
+
   // ── Share Card ────────────────────────────────────────────────────────────
 
   function ShareCard({ data: d, theme }) {
@@ -639,29 +768,6 @@ export function getInsightJS() {
         h('div', { className: 'share-stat' }, h('div', { className: 'share-stat-val' }, d.totalSessions || 0), h('div', { className: 'share-stat-lbl' }, 'Sessions')),
         h('div', { className: 'share-stat' }, h('div', { className: 'share-stat-val' }, Math.round(d.totalHours || 0) + 'h'), h('div', { className: 'share-stat-lbl' }, 'Total Time')),
         h('div', { className: 'share-stat' }, h('div', { className: 'share-stat-val' }, (d.currentStreak || 0) + 'd'), h('div', { className: 'share-stat-lbl' }, 'Current Streak'))
-      )
-    );
-  }
-
-  // ── Export Button ─────────────────────────────────────────────────────────
-
-  function ExportCardButton({ onExport }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef(null);
-    useEffect(() => {
-      if (!open) return;
-      const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-      document.addEventListener('mousedown', handler);
-      return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-    return h('div', { className: 'export-dropdown-wrapper', ref },
-      h('button', { className: 'export-card-btn', onClick: () => setOpen(!open) },
-        '↑ Export Card',
-        h('span', { className: 'export-chevron' + (open ? ' open' : '') }, ' ▼')
-      ),
-      open && h('div', { className: 'export-dropdown' },
-        h('button', { className: 'export-dropdown-item', onClick: () => { setOpen(false); onExport('light'); } }, '☀ Light Theme'),
-        h('button', { className: 'export-dropdown-item', onClick: () => { setOpen(false); onExport('dark'); } }, '🌙 Dark Theme')
       )
     );
   }
@@ -692,11 +798,6 @@ export function getInsightJS() {
       if (pendingExport.current) { pendingExport.current = false; performExport(); }
     }, [cardTheme]);
 
-    const handleExport = theme => {
-      if (theme === cardTheme) { performExport(); }
-      else { pendingExport.current = true; setCardTheme(theme); }
-    };
-
     if (!d) return h('div', { style: { textAlign: 'center', color: '#64748b', paddingTop: '4rem' } }, 'No insight data available.');
 
     const hKeys = Object.keys(d.heatmap || {});
@@ -717,8 +818,7 @@ export function getInsightJS() {
               d.totalMessages ? (d.totalMessages.toLocaleString() + ' messages across ' + (d.totalSessions || 0).toLocaleString() + ' sessions') : 'Your personalized AI conversation patterns',
               dateRangeStr && (' · ' + dateRangeStr)
             )
-          ),
-          h(ExportCardButton, { onExport: handleExport })
+          )
         )
       ),
       h('div', { className: 'mx-auto max-w-6xl px-6 py-10' },
@@ -732,6 +832,7 @@ export function getInsightJS() {
         q && h(Improvements, { qualitative: q }),
         q && h(FutureOpportunities, { qualitative: q }),
         q && h(MemorableMoment, { qualitative: q }),
+        d.facets && d.facets.length > 0 && h(PerSessionAnalysis, { facets: d.facets, sessions: d.sessions }),
         h(ShareCard, { data: d, theme: cardTheme })
       )
     );
