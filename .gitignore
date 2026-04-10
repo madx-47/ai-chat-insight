@@ -35,4 +35,7 @@ __pycache__/
 # Misc
 *.local
 sessions/
-.**
+.agent**/
+.wiki**/
+.qwen**/
+.gsd/
