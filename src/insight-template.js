@@ -646,22 +646,53 @@ export function getInsightJS() {
 
   function HelpfulnessDots({ level }) {
     const levels = { unhelpful: 1, slightly_helpful: 2, moderately_helpful: 3, very_helpful: 4, essential: 5 };
-    const active = levels[level] || 0;
-    return h('div', { className: 'helpfulness-dots', title: level || 'unknown' },
+    // Handle array input: use first element as representative value
+    const normalizedLevel = Array.isArray(level) ? level[0] : level;
+    // Safe lookup with fallback to 0 for unknown labels
+    const active = (normalizedLevel && levels[normalizedLevel]) || 0;
+    const displayTitle = Array.isArray(level) ? level.join(', ') : (level || 'unknown');
+    return h('div', { className: 'helpfulness-dots', title: displayTitle },
       [1,2,3,4,5].map(i => h('span', { key: i, className: 'helpfulness-dot' + (i <= active ? ' active' : '') }))
     );
   }
 
   function FrictionBadge({ frictionCounts }) {
     if (!frictionCounts) return h('span', { className: 'friction-count none' }, 'No friction');
-    const total = Object.entries(frictionCounts).reduce((sum, [k, v]) => k === 'none' ? sum : sum + v, 0);
+    // Handle both object and array shapes
+    let total = 0;
+    if (Array.isArray(frictionCounts)) {
+      // Sum numeric entries in array
+      total = frictionCounts.reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0);
+    } else if (typeof frictionCounts === 'object') {
+      // Sum object entries, ignoring 'none' keys
+      total = Object.entries(frictionCounts).reduce((sum, [k, v]) => k === 'none' ? sum : sum + v, 0);
+    }
     const cls = total === 0 ? 'none' : total <= 2 ? 'low' : 'high';
     return h('span', { className: 'friction-count ' + cls }, total + ' friction');
   }
 
   function GoalBadges({ goals }) {
-    if (!goals || Object.keys(goals).length === 0) return null;
-    const entries = Object.entries(goals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (!goals) return null;
+    let entries = [];
+
+    if (Array.isArray(goals)) {
+      // Derive counts per label from array
+      const counts = {};
+      goals.forEach(goal => {
+        const label = typeof goal === 'string' ? goal : String(goal);
+        counts[label] = (counts[label] || 0) + 1;
+      });
+      entries = Object.entries(counts);
+    } else if (typeof goals === 'object') {
+      // Use object directly
+      entries = Object.entries(goals);
+    }
+
+    if (entries.length === 0) return null;
+
+    // Sort by count descending and take top 6
+    entries = entries.sort((a, b) => b[1] - a[1]).slice(0, 6);
+
     return h('div', { className: 'goal-badges' },
       entries.map(([key, count]) =>
         h('span', { key: key, className: 'goal-badge', title: key },
