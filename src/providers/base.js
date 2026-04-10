@@ -273,9 +273,11 @@ export function formatSessionTranscript(sessionId, records) {
     } else if (record.type === 'tool_result' && record.toolCallResult) {
       const { status, resultDisplay } = record.toolCallResult;
       const display =
-        typeof resultDisplay === 'string'
-          ? resultDisplay.slice(0, 150)
-          : JSON.stringify(resultDisplay).slice(0, 150);
+        resultDisplay == null
+          ? ''
+          : typeof resultDisplay === 'string'
+            ? resultDisplay.slice(0, 150)
+            : JSON.stringify(resultDisplay).slice(0, 150);
       out += `[Tool result]: ${status} — ${display}\n`;
     }
     // Skip system/telemetry records
