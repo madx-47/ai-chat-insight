@@ -1,220 +1,274 @@
 # AI Chat Insight
 
-Analyze AI coding chat session logs (`.jsonl`) and generate:
-- structured session insights (`output/insight.json`)
-- a shareable static HTML report (`output/reports/insight-*.html`)
+AI Chat Insight analyzes AI chat session logs (`.jsonl`) and produces:
 
-This project reads raw chat records, computes usage metrics, uses an LLM to extract per-session facets, aggregates patterns, then builds qualitative insights and renders a dashboard-style report.
+- structured JSON insights
+- a shareable static HTML report
+- dashboard-ready data for a web experience
 
-## What This Project Does
+This repository has three ways to use the project:
 
-- Parses JSONL chat logs
-- Groups records by `sessionId`
-- Computes non-LLM metrics (sessions, activity heatmap, streaks, tool usage, etc.)
-- Filters to conversational sessions (must include both `user` and `assistant`)
-- Runs LLM analysis per session to extract structured facets
-- Aggregates facets across all sessions
-- Generates 8 qualitative sections with LLM calls
-- Produces a static HTML report from the final `insight.json`
+1. Core Node pipeline (main logic in `src/`)
+2. CLI app (interactive local workflow)
+3. Web app (upload + async analysis workflow)
 
-## How It Works (Pipeline)
+## What This Project Solves
 
-Main entry: `src/index.js`
+When you have many chat sessions, it is hard to quickly understand:
 
-1. Read and parse JSONL
-2. Group records by session
-3. Compute metrics (`src/metrics.js`)
-4. Filter conversational sessions (`src/reader.js`)
-5. Analyze sessions with provider (`src/providers/*`)
-6. Aggregate facets (`src/aggregator.js`)
-7. Generate qualitative insights (`src/qualitative/generator.js`)
-8. Write `output/insight.json` and render HTML (`src/htmlGenerator.js`)
+- how users interact over time
+- where friction appears
+- what goals users are trying to achieve
+- what outcomes were reached
 
-## Tech Stack
+AI Chat Insight turns raw session logs into metrics + qualitative insights so teams can review behavior at scale.
 
-- Node.js (ESM modules)
-- LLM provider support:
-  - NVIDIA NIM
-  - Anthropic Claude
-  - OpenAI
-  - Ollama (local)
+## Architecture At A Glance
+
+The architecture is pipeline-driven.
+
+1. Read JSONL
+2. Group by session
+3. Compute metrics
+4. Keep only conversational sessions (user + assistant)
+5. Run LLM facet analysis per session
+6. Aggregate facets across sessions
+7. Generate qualitative insights
+8. Write JSON and render HTML report
+
+Primary implementation lives in:
+
+- `src/index.js` (pipeline orchestrator)
+- `src/reader.js` (JSONL parsing + session grouping)
+- `src/metrics.js` (quantitative analytics)
+- `src/providers/` (LLM provider adapters)
+- `src/aggregator.js` (cross-session facet aggregation)
+- `src/qualitative/` (narrative insight generation)
+- `src/htmlGenerator.js` (static report generation)
+
+For deeper architecture notes, see `.gsd/ARCHITECTURE.md`.
 
 ## Project Structure
 
 ```text
+bin/
+  insight.js                # Interactive CLI entry point
+frontend/
+  src/                      # React dashboard source
+  vite.config.ts            # Frontend build config
 src/
-  index.js                 # pipeline + CLI
-  reader.js                # JSONL parser + session grouping/filtering
-  metrics.js               # computed usage metrics
-  aggregator.js            # aggregate per-session facets
-  htmlGenerator.js         # static HTML report generator
-  renderer.js              # HTML template renderer
-  providers/               # LLM provider adapters
-  qualitative/             # qualitative prompts + schemas + generator
+  index.js                  # Main Node pipeline (core logic)
+  server.js                 # Express API for web mode
+  reader.js
+  metrics.js
+  aggregator.js
+  htmlGenerator.js
+  providers/
+  qualitative/
+sessions/                   # Input .jsonl files (default for core mode)
+output/                     # Generated JSON + HTML reports
 test/
-  run-regression.js        # regression checks
-output/
-  insight.json             # generated insight payload
-  reports/                 # generated HTML reports
+  run-regression.js
 ```
 
-## Setup
+## Requirements
 
-### 1. Install dependencies
+- Node.js 18+
+- npm
+- One LLM provider configured (or run with `--skip-llm`)
+
+## Install
 
 ```bash
 npm install
 ```
 
-### 2. Create `.env`
+## Environment Variables
 
-Use the key for the provider you want.
+Create a `.env` file in project root.
+
+Use the provider you want:
 
 ```env
 NVIDIA_API_KEY=your_nvidia_key
-OPENAI_API_KEY=your_openai_key
 ANTHROPIC_API_KEY=your_anthropic_key
+OPENAI_API_KEY=your_openai_key
 ```
 
 Notes:
-- NVIDIA provider is default.
-- Ollama does not need a cloud API key, but requires local Ollama running.
 
-## How To Run
+- Default provider is `nvidia`.
+- `ollama` can be used for local inference (no cloud key, but local Ollama runtime is required).
 
-### Current behavior in this repo
+## Input Format
 
-`src/index.js` currently has hardcoded file paths:
-- source: `D:\Side Project\ai-chat-insight\web-session3.jsonl`
-- output: `D:\Side Project\ai-chat-insight\output\insight.json`
+Input is JSONL (one JSON object per line).
 
-If your clone path is different, update those two constants in `src/index.js` first.
+Session-level analysis depends on records being groupable by `sessionId`.
 
-### Run analysis
+## Main Version: Core Node Pipeline (`src/`)
+
+This is the main implementation of the project.
+
+### Run Full Analysis
 
 ```bash
 npm run analyze
 ```
 
-### Useful flags
+Behavior:
+
+- auto-picks the newest `.jsonl` file from `sessions/` if you do not pass a path
+- generates JSON output in `output/insight-<timestamp>.json`
+- generates HTML report in `output/reports/insight-<timestamp>.html`
+
+### Direct Run With Optional Paths
+
+```bash
+node src/index.js [input.jsonl] [output.json]
+```
+
+### Core Flags
 
 ```bash
 node src/index.js --skip-llm
 node src/index.js --skip-qualitative
+node src/index.js --provider=nvidia
 node src/index.js --provider=claude
 node src/index.js --provider=openai
 node src/index.js --provider=ollama
 node src/index.js --html
 ```
 
-## Run Tests
+`--html` mode renders HTML from existing insight JSON (latest in `output/` if not specified).
+
+## CLI Version (Reference + Usage)
+
+CLI entry point: `bin/insight.js`
+
+This version is ideal when you want an interactive local flow.
+
+How it works:
+
+1. Run from any folder containing `.jsonl` files
+2. CLI scans current directory for `.jsonl`
+3. If multiple files exist, it shows an interactive picker
+4. Runs analysis pipeline
+5. Writes output inside that same directory under `output/`
+6. Opens generated HTML report in browser
+
+### Use CLI
+
+1. Link command globally once:
+
+```bash
+npm link
+```
+
+2. In your sessions folder:
+
+```bash
+insight
+```
+
+3. Optional CLI flags:
+
+```bash
+insight --skip-llm
+insight --skip-qualitative
+insight --provider=claude
+```
+
+## Web Version (Reference + Usage)
+
+Backend entry point: `src/server.js`
+
+Frontend source: `frontend/`
+
+This version is ideal for browser-based upload and job tracking.
+
+How it works:
+
+1. User uploads JSONL (or submits raw JSONL text)
+2. Server creates async job
+3. Pipeline runs in background with progress updates
+4. Output JSON + HTML report are stored in `output/`
+5. Client polls job status and fetches final report payload
+
+### Use Web Mode
+
+1. Build frontend assets:
+
+```bash
+npm run frontend:build
+```
+
+2. Start server:
+
+```bash
+npm run web
+```
+
+3. Open:
+
+```text
+http://localhost:4173
+```
+
+Set a custom port with:
+
+```bash
+PORT=5000 npm run web
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:PORT=5000; npm run web
+```
+
+## API Summary (Web)
+
+- `POST /api/jobs` create analysis job (multipart upload or JSONL text)
+- `GET /api/jobs/:jobId` get job status + progress
+- `GET /api/jobs/:jobId/report` fetch final insight payload after completion
+- `GET /api/health` health check
+
+## Output Files
+
+- `output/insight-<timestamp>.json`
+- `output/reports/insight-<timestamp>.html`
+
+## Testing
+
+Run regression tests:
 
 ```bash
 npm test
 ```
 
-## Output Files
+## Troubleshooting
 
-- `output/insight.json`  
-  Complete machine-readable insight data (metrics, per-session facets, aggregates, qualitative sections)
+### No `.jsonl` found
 
-- `output/reports/insight-YYYY-MM-DD*.html`  
-  Self-contained visual report you can open in a browser
+- Core mode expects files in `sessions/` unless input path is passed.
+- CLI mode expects files in your current working directory.
 
-## Notes for GitHub Visitors
+### Provider errors
 
-- Input format is JSONL, one JSON object per line.
-- Session grouping depends on `sessionId`.
-- Conversational analysis runs only on sessions containing both `user` and `assistant` records.
-- Qualitative layer is skipped automatically if no facets are generated.
-A CLI tool for analyzing and visualizing AI chat session data. It extracts qualitative and quantitative insights from conversational session logs (`.jsonl`), scoring interactions, topics, and overall user goals to generate a beautiful, self-contained HTML report.
+- Check `.env` key for selected provider.
+- Try `--provider=<name>` explicitly.
 
-## Installation & Setup
+### Web server says frontend build is missing
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository_url>
-   cd ai-chat-insight
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory (or in the directory where you'll run the command) and add your AI provider API key. For the default provider (NVIDIA NIM in this example), add:
-   ```env
-   NVIDIA_API_KEY=your_nvidia_api_key_here
-   ```
-   *(If you use Claude, add `ANTHROPIC_API_KEY=...` and run with `--provider=claude`, etc.)*
-
-4. **Register the Global CLI Tool:**
-   To run the `insight` command from any directory on your computer, create a global symlink using NPM:
-   ```bash
-   npm link
-   ```
-
-## Usage
-
-Once linked, the `insight` tool is available globally as an interactive CLI.
-
-### 1. Basic Interactive Mode
-
-Navigate to any directory containing your session logs (`.jsonl` files) and run the command:
+Run:
 
 ```bash
-cd path/to/your/sessions/folder
-insight
+npm run frontend:build
 ```
 
-The tool will:
-- Automatically find all `.jsonl` files in the current folder.
-- Show an interactive checkbox menu so you can select a session file (or it will auto-select if there is only one file).
-- Process the session data using the configured AI provider.
-- Generate a detailed HTML report and save it in a new `./output/reports/` folder *inside the directory where you ran the command*.
-- Automatically open the HTML report in your default web browser once finished.
+## Notes
 
-### 2. Available Flags
-
-You can customize the pipeline execution with the following command-line flags:
-
-- **Skip LLM Analysis (`--skip-llm`):**
-  Generate basic statistics and group sessions without invoking the AI LLM (saves time / API calls if you only care about metrics).
-  ```bash
-  insight --skip-llm
-  ```
-
-- **Choose Provider (`--provider=<name>`):**
-  Explicitly state which AI provider to use. Make sure your `.env` contains the required key for that provider.
-  ```bash
-  insight --provider=claude
-  ```
-
-- **Skip Qualitative Info (`--skip-qualitative`):**
-  Skips the generation of high-level qualitative summaries at the end of the pipeline.
-  ```bash
-  insight --skip-qualitative
-  ```
-
-## How It Works
-
-- **`bin/insight.js`**: The main executable that presents the CLI menu, handles file pickup, coordinates progress reporting, and runs the downstream pipeline.
-- **`src/index.js`**: Handles the core logic: loading source files, running analysis modules (via LLMs or heuristically), and orchestrating metrics aggregation.
-- **`src/htmlGenerator.js`**: Takes the processed JSON insight data and populates a beautifully designed HTML report, allowing quick visualization of AI performance and user interaction metrics.
-
-## Example Output
-
-When processing is complete, the CLI will output a summary to your terminal:
-```text
-  ─────────────────────────────────────────────
-  Sessions :  2
-  Messages :  47
-  Facets   :  15
-  Streak   :  2 day(s)
-  ─────────────────────────────────────────────
-  JSON  →  D:\Projects\Insights\sessions\output\insight-20260406-202948.json
-  HTML  →  D:\Projects\Insights\sessions\output\reports\insight-20260406-202948.html
-
-  Opening report in browser…
-```
+- The Node pipeline in `src/` is the source of truth for business logic.
+- CLI and Web are interfaces around the same core pipeline.
+- Generated reports are static HTML files and can be shared directly.
